@@ -1,0 +1,25 @@
+# Виртуальное окружение
+venv/
+__pycache__/
+*.py[cod]
+*.so
+
+# Файлы логов
+*.log
+
+# Локальные конфигурационные файлы
+*.env
+*.local
+*.cfg
+*.conf
+
+# IDE и текстовые редакторы
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Файлы, созданные системой контроля версий
+.git/
+.svn/
+.hg/
