@@ -27,7 +27,6 @@ class Category(BaseModel):
 
     class Meta:
         verbose_name_plural = "Categories"
-        plural = 'categories'
         ordering = ['name']
 
 class Product(IsDeletedModel):
@@ -58,9 +57,9 @@ class Product(IsDeletedModel):
     in_stock = models.IntegerField(default=5)
 
     # Only 3 images are allowed
-    image1 = models.ImageField(uplaod_to='product_images/')
-    image2 = models.ImageField(uplaod_to='product_images/', blank=True)
-    image3 = models.ImageField(uplaod_to='product_images/', blank=True)
+    image1 = models.ImageField(upload_to='product_images/')
+    image2 = models.ImageField(upload_to='product_images/', blank=True)
+    image3 = models.ImageField(upload_to='product_images/', blank=True)
 
     def __str__(self):
         return str(self.name)

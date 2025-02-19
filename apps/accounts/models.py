@@ -33,7 +33,7 @@ class User(AbstractBaseUser, IsDeletedModel):
     first_name = models.CharField(verbose_name="First Name", max_length=30, null=True)
     last_name = models.CharField(verbose_name="Last Name", max_length=30, null=True)
     email = models.EmailField(verbose_name="Email address", unique=True)
-    avatar = models.ImageField(upload_to="avatars/", null=True, default=avatars/default.jpg)
+    avatar = models.ImageField(upload_to="avatars/", null=True, default="avatars/default.jpg")
 
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
