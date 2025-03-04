@@ -127,6 +127,9 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = '/media/'
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
@@ -145,6 +148,8 @@ SPECTACULAR_SETTINGS = {
     'TITLE': 'Django REST Framework API',
     'DESCRIPTION': 'A sample API for Django REST Framework by Andrew Aksarin',
     'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SWAGGER_UI_SETTINGS': {'persistAuthorization': True},
 }
 
 SIMPLE_JWT = {

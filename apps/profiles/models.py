@@ -95,6 +95,17 @@ class Order(BaseModel):
             self.tx_ref = generate_unique_code(Order, "tx_ref")
         super().save(*args, **kwargs)
 
+    @property
+    def get_cart_subtotal(self):
+        orderitems = self.orderitems.all()
+        total = sum([item.get_total for item in orderitems])
+        return total
+
+    @property
+    def get_cart_total(self):
+        total = self.get_cart_subtotal
+        return total
+
 class OrderItem(BaseModel):
     """
     Represents an item within an order.
@@ -105,7 +116,6 @@ class OrderItem(BaseModel):
         quantity (int): The quantity of the product ordered.
 
     """
-
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     order = models.ForeignKey(
         Order,
