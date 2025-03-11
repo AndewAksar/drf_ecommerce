@@ -9,12 +9,14 @@ from apps.shop.serializers import (ProductSerializer, CreateProductSerializer,
                                    OrderSerializer, CheckItemOrderSerializer)
 from apps.profiles.models import Order, OrderItem
 from apps.common.utils import set_dict_attr
+from apps.common.permissions import IsSeller
 
 
 tags = ['Sellers']
 
 class SellerView(APIView):
     serializer_class = SellerSerializer
+
     @extend_schema(
         summary='Apply to become a seller',
         description='This endpoint allows a buyer to apply to become a seller',
@@ -35,6 +37,8 @@ class SellerView(APIView):
 
 class ProductsBySellerView(APIView):
     serializer_class = ProductSerializer
+    permission_classes = [IsSeller]
+
     @extend_schema(
         summary='Seller Products Fetch',
         description='''
@@ -78,6 +82,8 @@ class ProductsBySellerView(APIView):
 
 class SellerProductView(APIView):
     serializer_class = CreateProductSerializer
+    permission_classes = [IsSeller]
+
     def get_object(self, slug):
         product = Product.objects.get_or_none(slug=slug)
         return product
@@ -125,6 +131,7 @@ class SellerProductView(APIView):
 
 class SellerOrdersView(APIView):
     serializer_class = OrderSerializer
+    permission_classes = [IsSeller]
 
     @extend_schema(
         operation_id='seller_orders',
@@ -139,7 +146,8 @@ class SellerOrdersView(APIView):
         return Response(data=serializer.data, status=200)
 
 class SellerOrderItemView(APIView):
-    serializer_class = CheckItemOrderSerializer
+    serializer_class = CheckItemOrderSerializer  # Указание сериализатора для сериализации списка элементов заказа
+    permission_classes = [IsSeller]              # Требуем аутентификацию и права продавца
 
     @extend_schema(
         operation_id='seller_orders_items_view',
@@ -148,6 +156,17 @@ class SellerOrderItemView(APIView):
         tags=tags,
     )
     def get(self, request, **kwargs):
+        """
+        Обрабатывает GET-запрос для получения элементов заказа для конкретного продавца
+        по идентификатору транзакции TX_REF.
+
+        Шаги выполнения:
+        1. Извлекает продавца из текущего пользователя
+        2. Получает заказ по TX_REF из параметров URL
+        3. Проверяет существование заказа
+        4. Фильтрует элементы заказа, относящиеся к продуктам данного продавца
+        5. Сериализует данные и возвращает в return.
+        """
         seller = request.user.seller
         order = Order.objects.get_or_none(tx_ref=kwargs['tx_ref'])
         if not order:

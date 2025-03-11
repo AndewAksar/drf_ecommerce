@@ -3,14 +3,17 @@ from rest_framework.views import APIView
 from drf_spectacular.utils import extend_schema
 
 from apps.common.utils import set_dict_attr
+from apps.common.permissions import IsOwner
 from apps.profiles.serializers import ProfileSerializer
 from apps.profiles.models import ShippingAddress
 from apps.profiles.serializers import ShippingAddressSerializer
+
 
 tags = ['Profiles']
 
 class ProfileView(APIView):
     serializer_class = ProfileSerializer
+    permission_classes = [IsOwner]
 
     @extend_schema(
         summary='Retrieve Profile',
@@ -51,6 +54,7 @@ class ProfileView(APIView):
 
 class ShippingAddressView(APIView):
     serializer_class = ShippingAddressSerializer
+    permission_classes = [IsOwner]
 
     @extend_schema(
         summary='Shipping Addresses Fetch',
@@ -79,9 +83,12 @@ class ShippingAddressView(APIView):
 
 class ShippingAddressViewID(APIView):
     serializer_class = ShippingAddressSerializer
+    permission_classes = [IsOwner]
 
     def get_object(self, user, shipping_id):
         shipping_address = ShippingAddress.objects.get_or_none(user=user, id=shipping_id)
+        if shipping_address is not None:
+            self.check_object_permissions(self.request, shipping_address)
         return shipping_address
 
     @extend_schema(

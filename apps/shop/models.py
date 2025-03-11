@@ -4,6 +4,7 @@ from autoslug import AutoSlugField
 from apps.common.models import BaseModel, IsDeletedModel
 from apps.sellers.models import Seller
 
+
 class Category(BaseModel):
     """
     Represents a product category.
