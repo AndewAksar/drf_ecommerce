@@ -31,6 +31,7 @@ class IsDeletedModel(BaseModel):
 
     class Meta:
         abstract = True
+        ordering = ["-id"]
 
     objects = IsDeletedManager()
 
