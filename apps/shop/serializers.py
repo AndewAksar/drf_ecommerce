@@ -3,6 +3,8 @@ from drf_spectacular.utils import extend_schema_field
 
 from apps.sellers.serializers import SellerSerializer
 from apps.profiles.serializers import ShippingAddressSerializer
+from apps.shop.models import Product
+from apps.shop.models import Review
 
 
 class CategorySerializer(serializers.Serializer):
@@ -88,3 +90,19 @@ class CheckItemOrderSerializer(serializers.Serializer):
     quantity = serializers.IntegerField()
     total = serializers.FloatField(source='get_total')
 
+class CreateReviewSerializer(serializers.Serializer):
+    first_name = serializers.CharField(source='user.first_name')
+    last_name = serializers.CharField(source='user.last_name')
+    email = serializers.EmailField(source='user.email')
+    product = ProductSerializer()
+    text = serializers.CharField(max_length=1000)
+    rating = serializers.IntegerField(min_value=1, max_value=5, default=0)
+
+class ReviewSerializer(serializers.Serializer):
+    first_name = serializers.CharField(source='user.first_name')
+    text = serializers.CharField(max_length=1000)
+    rating = serializers.IntegerField(min_value=1, max_value=5, default=0)
+
+    class Meta:
+        model = Review
+        fields = ['id', 'user', 'product', 'rating', 'text']

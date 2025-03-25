@@ -4,6 +4,7 @@ from django.db import models
 from apps.accounts.models import User
 from apps.common.models import BaseModel
 
+
 class Seller(BaseModel):
     # Link to the User model
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="seller")

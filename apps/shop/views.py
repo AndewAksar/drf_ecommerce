@@ -3,19 +3,21 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status, permissions
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.exceptions import NotFound, PermissionDenied
+from django.db.models import Count
 
 from apps.profiles.models import Order, OrderItem, ShippingAddress
-from apps.shop.models import Category, Product
+from apps.shop.models import Review, Product, Category
 from apps.shop.schema_examples import PRODUCT_PARAM_EXAMPLE
 from apps.shop.filters import ProductFilter
 from apps.shop.serializers import (OrderItemSerializer, ToggleCartItemSerializer,
                                    CheckoutSerializer, OrderSerializer,
                                    CategorySerializer, ProductSerializer,
-                                   CheckItemOrderSerializer)
+                                   CheckItemOrderSerializer, ReviewSerializer, CreateReviewSerializer)
 from apps.sellers.models import Seller
 from apps.common.permissions import IsOwner
 from apps.common.paginations import CustomPagination
-
+from apps.common.utils import set_dict_attr
 
 tags = ['shop']
 
@@ -62,7 +64,7 @@ class ProductsByCategoryView(APIView):
         tags=tags,
     )
     def get(self, request, *args, **kwargs):
-        category = Category.objects.get_or_none(clug=kwargs['slug'])
+        category = Category.objects.get_or_none(slug=kwargs['slug'])
         if not category:
             return Response(data={'massage': 'Category does not exist!'}, status=404)
         products = Product.objects.select_related("category", "seller", "seller__user").filter(category=category)
@@ -114,6 +116,7 @@ class ProductView(APIView):
     def get_object(self, slug):
         product = Product.objects.get_or_none(slug=slug)
         return product
+
     @extend_schema(
         operation_id='product_detail',
         summary='Product Detail fetch',
@@ -290,3 +293,131 @@ class OrderItemView(APIView):
         order_items = OrderItem.objects.filter(order=order)
         serializer = self.serializer_class(order_items, many=True)
         return Response(data=serializer.data, status=200)
+
+class ReviewsView(APIView):
+    """
+    Реализация получения всех отзывов о продукте, оставленных разными пользователями.
+    Получение данных продукта осуществляется по слагу.
+    """
+    serializer_class = ReviewSerializer
+
+    @extend_schema(
+        operation_id='reviews_by_products',
+        summary='Reviews fetch',
+        description='This endpoint returns all reviews of product.',
+        tags=tags,
+    )
+    def get(self, request, *args, **kwargs):
+        product = Product.objects.get_or_none(slug=kwargs["slug"])
+        if not product:
+            return Response(data={'massage': 'Product does not exist!'}, status=404)
+        else:
+            reviews = Review.objects.filter(product=product)
+            if not reviews:
+                return Response(data={'message': 'No reviews for this product yet.'}, status=404)
+            else:
+                serializer = self.serializer_class(reviews, many=True)
+                return Response(data=serializer.data, status=200)
+
+class ReviewItemView(APIView):
+    """
+    Реализация получения, изменения и удаления конкретного отзыва о продукте от одного пользователя,
+    прошедшего проверку на права доступа.
+    """
+    serializer_class = ReviewSerializer
+    permission_classes = [IsOwner]
+
+    # Метод для получения отзыва о продукте от пользователя
+    @extend_schema(
+        operation_id='review_by_user',
+        summary='Reviews by User',
+        description='This endpoint returns all reviews for a particular user.',
+        tags=tags,
+    )
+    def get(self, request, **kwargs):
+        user = request.user
+        product = Product.objects.get_or_none(slug=kwargs["slug"])
+        if not product:
+            return Response(data={'message': 'Product does not exist!'}, status=404)
+        else:
+            review = Review.objects.get(product=product, user=user, uuid=kwargs["uuid"])
+            if not review:
+                return Response(data={'message': 'No reviews from this user yet.'}, status=404)
+            else:
+                serializer = ReviewSerializer(review)
+                return Response(data={'message': 'Review retrieved successfully.', 'review': serializer.data}, status=200)
+
+    # Метод для удаления отзыва о продукте от пользователя
+    @extend_schema(
+        operation_id='review_delete',
+        summary='Delete Review',
+        description='This endpoint deletes a review of a product via user.',
+        tags=tags,
+    )
+    def delete(self, request, **kwargs):
+        user = request.user
+        product = Product.objects.get_or_none(slug=kwargs["slug"])
+        if not product:
+            return Response(data={'message': 'Delete is impossible, product does not exist!'}, status=404)
+        else:
+            review = Review.objects.get(product=product, user=user, uuid=kwargs["uuid"])
+            if not review:
+                return Response(data={'message': 'Delete is impossible, no reviews for this product yet.'}, status=404)
+            else:
+                review.delete()
+                return Response(data={'massage': 'Reviews deleted successfully.'}, status=200)
+
+    # Метод для обновления отзыва о продукте от пользователя
+    @extend_schema(
+        operation_id='review_update',
+        summary='Update Review',
+        description='This endpoint updates a review of a product via user.',
+        tags=tags,
+    )
+    def put(self, request, **kwargs):
+        user = request.user
+        product = Product.objects.get_or_none(slug=kwargs["slug"])
+        if not product:
+            return Response(data={'message': 'Change is impossible, product does not exist!'}, status=404)
+        else:
+            review = Review.objects.get(product=product, user=user, uuid=kwargs["uuid"])
+            if not review:
+                return Response(data={'message': 'Change is impossible, no reviews for this product yet.'}, status=404)
+            else:
+                serializer = self.serializer_class(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                data = serializer.validated_data
+                review = set_dict_attr(review, data)
+                review.save()
+                serializer = self.serializer_class(review)
+                return Response(data=serializer.data, status=200)
+
+class CreateReviewView(APIView):
+    """
+    Реализация создания отзыва о продукте от одного пользователя,
+    прошедшего проверку на права доступа.
+    """
+    serializer_class = CreateReviewSerializer
+    permission_classes = [IsOwner]
+
+    # Метод для создания отзыва о продукте от пользователя
+    @extend_schema(
+        operation_id='review_create',
+        summary='Create Review',
+        description='This endpoint creates a new review of a product.',
+        tags=tags,
+    )
+    def post(self, request, **kwargs):
+        user = request.user
+        review = Review.objects.get_or_none(slug=kwargs["slug"], user=user)
+        if review:
+            return Response(data={"message": "Review already exists!"}, status=409)
+        else:
+            serializer = self.serializer_class(data=request.data)
+            if serializer.is_valid():
+                data = serializer.validated_data
+                new_review = Review.objects.create(user=user, **data)
+                serializer = self.serializer_class(new_review)
+                return Response(data=serializer.data, status=201)
+            else:
+                return Response(data=serializer.errors, status=400)

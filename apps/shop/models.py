@@ -1,8 +1,11 @@
 from django.db import models
+import uuid
 from autoslug import AutoSlugField
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 from apps.common.models import BaseModel, IsDeletedModel
 from apps.sellers.models import Seller
+from apps.accounts.models import User
 
 
 class Category(BaseModel):
@@ -18,7 +21,6 @@ class Category(BaseModel):
         __str__():
             Returns the string representation of the category name.
     """
-
     name = models.CharField(max_length=100, unique=True)
     slug = AutoSlugField(populate_from="name", unique=True, always_update=True)
     image = models.ImageField(upload_to='category_images/')
@@ -47,7 +49,6 @@ class Product(IsDeletedModel):
         image2 (ImageField): The second image of the product.
         image3 (ImageField): The third image of the product.
     """
-
     seller = models.ForeignKey(Seller, on_delete=models.CASCADE, related_name='products', null=True)
     name = models.CharField(max_length=100)
     slug = AutoSlugField(populate_from="name", unique=True, db_index=True)
@@ -65,6 +66,21 @@ class Product(IsDeletedModel):
     def __str__(self):
         return str(self.name)
 
+class Review(IsDeletedModel):
+    """
+    Represents a review for a product.
 
+    Attributes:
+        user (ForeignKey): The user who wrote the review.
+        product (ForeignKey): The product being reviewed.
+        rating (int): The rating given by the user.
+        text (str): The content of the review.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
+    rating = models.IntegerField(default=0, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    text = models.TextField(max_length=200)
 
-
+    def __str__(self):
+        return f"Review by {self.user.full_name} for {self.product.name}"
