@@ -5,6 +5,7 @@ from rest_framework import status, permissions
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import NotFound, PermissionDenied
 from django.db.models import Count
+from django.utils.functional import cached_property
 
 from apps.profiles.models import Order, OrderItem, ShippingAddress
 from apps.shop.models import Review, Product, Category
@@ -18,6 +19,7 @@ from apps.sellers.models import Seller
 from apps.common.permissions import IsOwner
 from apps.common.paginations import CustomPagination
 from apps.common.utils import set_dict_attr
+
 
 tags = ['shop']
 
@@ -340,7 +342,7 @@ class ReviewItemView(APIView):
         if not product:
             return Response(data={'message': 'Product does not exist!'}, status=404)
         else:
-            review = Review.objects.get(product=product, user=user, uuid=kwargs["uuid"])
+            review = Review.objects.get(product=product, user=user, id=kwargs["uuid"])
             if not review:
                 return Response(data={'message': 'No reviews from this user yet.'}, status=404)
             else:
@@ -360,7 +362,7 @@ class ReviewItemView(APIView):
         if not product:
             return Response(data={'message': 'Delete is impossible, product does not exist!'}, status=404)
         else:
-            review = Review.objects.get(product=product, user=user, uuid=kwargs["uuid"])
+            review = Review.objects.get(product=product, user=user, id=kwargs["uuid"])
             if not review:
                 return Response(data={'message': 'Delete is impossible, no reviews for this product yet.'}, status=404)
             else:
@@ -377,20 +379,20 @@ class ReviewItemView(APIView):
     def put(self, request, **kwargs):
         user = request.user
         product = Product.objects.get_or_none(slug=kwargs["slug"])
+        review = Review.objects.get_or_none(product=product, user=user, id=kwargs["uuid"])
+
         if not product:
             return Response(data={'message': 'Change is impossible, product does not exist!'}, status=404)
-        else:
-            review = Review.objects.get(product=product, user=user, uuid=kwargs["uuid"])
-            if not review:
-                return Response(data={'message': 'Change is impossible, no reviews for this product yet.'}, status=404)
-            else:
-                serializer = self.serializer_class(data=request.data)
-                serializer.is_valid(raise_exception=True)
-                data = serializer.validated_data
-                review = set_dict_attr(review, data)
-                review.save()
-                serializer = self.serializer_class(review)
-                return Response(data=serializer.data, status=200)
+
+        if not review:
+            return Response(data={'message': 'Change is impossible, no reviews for this product yet.'}, status=404)
+
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        review = set_dict_attr(user, serializer.validated_data)
+        review.save()
+        serializer = self.serializer_class(review)
+        return Response(data=serializer.data, status=200)
 
 class CreateReviewView(APIView):
     """
@@ -409,15 +411,17 @@ class CreateReviewView(APIView):
     )
     def post(self, request, **kwargs):
         user = request.user
-        review = Review.objects.get_or_none(slug=kwargs["slug"], user=user)
-        if review:
-            return Response(data={"message": "Review already exists!"}, status=409)
+        product = Product.objects.get_or_none(slug=kwargs["slug"])
+        if not product:
+            return Response(data={'message': 'Create is impossible, product does not exist!'}, status=404)
         else:
-            serializer = self.serializer_class(data=request.data)
-            if serializer.is_valid():
-                data = serializer.validated_data
-                new_review = Review.objects.create(user=user, **data)
-                serializer = self.serializer_class(new_review)
-                return Response(data=serializer.data, status=201)
+            if product.reviews.filter(user=request.user).exists():
+                return Response({'message': 'Review already exists!'}, status=400)
             else:
-                return Response(data=serializer.errors, status=400)
+                serializer = self.serializer_class(data=request.data)
+                if serializer.is_valid():
+                    new_review = Review.objects.create(user=user, product=product, **serializer.validated_data)
+                    serializer = self.serializer_class(new_review)
+                    return Response(data=serializer.data, status=201)
+                else:
+                    return Response(data=serializer.errors, status=400)

@@ -91,10 +91,6 @@ class CheckItemOrderSerializer(serializers.Serializer):
     total = serializers.FloatField(source='get_total')
 
 class CreateReviewSerializer(serializers.Serializer):
-    first_name = serializers.CharField(source='user.first_name')
-    last_name = serializers.CharField(source='user.last_name')
-    email = serializers.EmailField(source='user.email')
-    product = ProductSerializer()
     text = serializers.CharField(max_length=1000)
     rating = serializers.IntegerField(min_value=1, max_value=5, default=0)
 
