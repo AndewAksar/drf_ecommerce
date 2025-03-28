@@ -14,7 +14,8 @@ from apps.shop.filters import ProductFilter
 from apps.shop.serializers import (OrderItemSerializer, ToggleCartItemSerializer,
                                    CheckoutSerializer, OrderSerializer,
                                    CategorySerializer, ProductSerializer,
-                                   CheckItemOrderSerializer, ReviewSerializer, CreateReviewSerializer)
+                                   CheckItemOrderSerializer, ReviewSerializer,
+                                   CreateReviewSerializer, UpdateReviewSerializer)
 from apps.sellers.models import Seller
 from apps.common.permissions import IsOwner
 from apps.common.paginations import CustomPagination
@@ -367,7 +368,7 @@ class ReviewItemView(APIView):
             if not review:
                 return Response(data={'message': 'No reviews from this user yet.'}, status=404)
             else:
-                serializer = ReviewSerializer(review)
+                serializer = self.serializer_class(review)
                 return Response(data={'message': 'Review retrieved successfully.', 'review': serializer.data}, status=200)
 
     # Метод для удаления отзыва о продукте от пользователя
@@ -408,9 +409,10 @@ class ReviewItemView(APIView):
         if not review:
             return Response(data={'message': 'Change is impossible, no reviews for this product yet.'}, status=404)
 
-        serializer = self.serializer_class(data=request.data)
+        serializer = UpdateReviewSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        review = set_dict_attr(user, serializer.validated_data)
+        data = serializer.validated_data
+        review = set_dict_attr(review, data)
         review.save()
         serializer = self.serializer_class(review)
         return Response(data=serializer.data, status=200)

@@ -1,25 +1,95 @@
-# Виртуальное окружение
-venv/
+# Байт-компиляции Python
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Файлы сессии Python
 *.py[cod]
-*.so
 
-# Файлы логов
-*.log
-
-# Локальные конфигурационные файлы
-*.env
-*.local
-*.cfg
-*.conf
-
-# IDE и текстовые редакторы
+# Файлы и директории, создаваемые IDE и редакторами
 .idea/
 .vscode/
-*.sublime-project
-*.sublime-workspace
+*.iml
+*.ipynb_checkpoints/
 
-# Файлы, созданные системой контроля версий
+# Виртуальные окружения
+venv/
+env/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Логи и временные файлы
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Директория для загруженных данных или ресурсов
+data/
+resources/
+
+# Файлы конфигурации окружения
+.env
+.env.*
+
+# Файлы сборки и дистрибуции
+build/
+dist/
+*.egg-info/
+
+# Файлы отчетов и документации
+docs/_build/
+report/
+
+# Системные файлы операционной системы
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Файлы Git
 .git/
-.svn/
-.hg/
+.gitignore
+
+# Файлы pytest
+.cache/
+.pytest_cache/
+
+# Файлы tox
+.tox/
+
+# Файлы coverage
+.htmlcov/
+.coverage
+
+# Файлы mypy
+.mypy_cache/
+
+# Файлы pipenv
+Pipfile.lock
+
+# Файлы pre-commit
+.pre-commit-cache/
+
+# Файлы Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Файлы Kubernetes
+*.yaml
+*.yml
+
+# Файлы Terraform
+*.tfstate
+*.tfstate.backup
+terraform.tfvars
+
+# Файлы Ansible
+*.retry
+
+# Файлы Jupyter Notebook
+.ipynb_checkpoints/

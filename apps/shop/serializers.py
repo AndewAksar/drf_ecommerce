@@ -94,11 +94,26 @@ class CreateReviewSerializer(serializers.Serializer):
     text = serializers.CharField(max_length=1000)
     rating = serializers.IntegerField(min_value=1, max_value=5, default=0)
 
+class UpdateReviewSerializer(serializers.Serializer):
+    text = serializers.CharField(max_length=1000)
+    rating = serializers.IntegerField(min_value=1, max_value=5, default=0)
+
+    class Meta:
+        model = Review
+        fields = ['rating', 'text']
+
 class ReviewSerializer(serializers.Serializer):
-    first_name = serializers.CharField(source='user.first_name')
+    first_name = serializers.CharField(source='user.first_name', read_only=True)
     text = serializers.CharField(max_length=1000)
     rating = serializers.IntegerField(min_value=1, max_value=5, default=0)
 
     class Meta:
         model = Review
         fields = ['id', 'user', 'product', 'rating', 'text']
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Удаляем поля 'user' и 'product', если они не нужны в ответе
+        representation.pop('user', None)
+        representation.pop('product', None)
+        return representation
