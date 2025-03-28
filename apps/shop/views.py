@@ -19,6 +19,7 @@ from apps.sellers.models import Seller
 from apps.common.permissions import IsOwner
 from apps.common.paginations import CustomPagination
 from apps.common.utils import set_dict_attr
+from apps.common.utils import calculate_avg_rating
 
 
 tags = ['shop']
@@ -130,7 +131,15 @@ class ProductView(APIView):
         if not product:
             return Response(data={'massage': 'Product does not exist!'}, status=404)
         serializer = self.serializer_class(product)
-        return Response(data=serializer.data, status=200)
+        reviews = Review.objects.filter(product=product).all()
+        average_rating = calculate_avg_rating(reviews)
+        response_data = {
+            'product_rating': {
+                'rating': average_rating
+            },
+            'product': serializer.data
+        }
+        return Response(response_data, status=200)
 
 class CartView(APIView):
     serializer_class = OrderItemSerializer  # Указание сериализатора для сериализации элемента заказа
@@ -302,12 +311,14 @@ class ReviewsView(APIView):
     Получение данных продукта осуществляется по слагу.
     """
     serializer_class = ReviewSerializer
+    pagination_class = CustomPagination
 
     @extend_schema(
         operation_id='reviews_by_products',
         summary='Reviews fetch',
         description='This endpoint returns all reviews of product.',
         tags=tags,
+        parameters=PRODUCT_PARAM_EXAMPLE,
     )
     def get(self, request, *args, **kwargs):
         product = Product.objects.get_or_none(slug=kwargs["slug"])
@@ -318,8 +329,18 @@ class ReviewsView(APIView):
             if not reviews:
                 return Response(data={'message': 'No reviews for this product yet.'}, status=404)
             else:
-                serializer = self.serializer_class(reviews, many=True)
-                return Response(data=serializer.data, status=200)
+                average_rating = calculate_avg_rating(reviews)
+                paginator = self.pagination_class()
+                paginated_reviews = paginator.paginate_queryset(reviews, request)
+                serializer = self.serializer_class(paginated_reviews, many=True)
+                response_data = {
+                    'product': {
+                        'name': product.name,
+                        'rating': average_rating
+                    },
+                    'reviews': serializer.data
+                }
+                return paginator.get_paginated_response(response_data)
 
 class ReviewItemView(APIView):
     """

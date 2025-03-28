@@ -1,4 +1,5 @@
 import secrets
+from django.db.models import Avg
 
 from apps.common.models import BaseModel
 
@@ -26,3 +27,10 @@ def set_dict_attr(obj, data):
     for attr, value in data.items():
         setattr(obj, attr, value)
     return obj
+
+def calculate_avg_rating(reviews):
+    """
+    Calculate the average rating from a queryset of reviews and round it to one decimal place.
+    """
+    average_rating = reviews.aggregate(Avg('rating'))['rating__avg']
+    return round(average_rating, 1) if average_rating is not None else None
